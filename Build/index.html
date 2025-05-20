@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KikiPaint</title>
+
+  <!-- Manifest para PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#FF69B4" />
+
+</head>
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KikiPaint - Dibuja kawaii</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+  body {
+    margin: 0; padding: 0; background: #fff0f6;
+    font-family: 'Fredoka One', cursive;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 3rem; color: #ff66b2; margin: 20px 0 10px;
+    text-shadow: 0 0 8px #ff99cc;
+  }
+  #menu, #editor {
+    width: 95vw;
+    max-width: 900px;
+    background: #ffe4f0;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(255, 136, 196, 0.4);
+    padding: 15px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+  }
+  #menu {
+    display: block;
+  }
+  #editor {
+    display: none;
+    user-select: none;
+  }
+
+  /* Lista dibujos guardados */
+  #savedDrawings {
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+  .drawing-card {
+    display: flex;
+    align-items: center;
+    background: #fff0f6;
+    border-radius: 10px;
+    margin: 6px 0;
+    padding: 8px;
+    box-shadow: 0 2px 5px rgba(255,102,178,0.3);
+  }
+  .drawing-card canvas {
+    border: 1px solid #ff8ac4;
+    border-radius: 5px;
+    width: 60px; height: 60px;
+    flex-shrink: 0;
+  }
+  .drawing-info {
+    flex-grow: 1;
+    padding-left: 12px;
+    font-size: 1rem;
+    color: #a40059;
+  }
+  .drawing-info small {
+    display: block;
+    font-size: 0.75rem;
+    color: #ff66b2;
+    margin-top: 3px;
+  }
+  .drawing-buttons button {
+    margin-left: 8px;
+    background: #ff8ac4;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-family: 'Fredoka One', cursive;
+  }
+  .drawing-buttons button:hover {
+    background: #ff66b2;
+  }
+
+  /* Botón grande nuevo dibujo */
+  #btnNewDrawing {
+    width: 100%;
+    margin-top: 12px;
+    background: #ff66b2;
+    color: white;
+    font-size: 1.3rem;
+    padding: 12px 0;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Fredoka One', cursive;
+    cursor: pointer;
+    box-shadow: 0 0 8px #ff99cc;
+    transition: background 0.3s;
+  }
+  #btnNewDrawing:hover {
+    background: #ff4d9a;
+  }
+
+  /* Editor: herramientas */
+  #tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: center;
+  }
+  button.tool-btn {
+    background: #ff8ac4;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 14px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-family: 'Fredoka One', cursive;
+  }
+  button.tool-btn:hover, button.tool-btn.active {
+    background: #ff66b2;
+  }
+
+  /* Control deslizante */
+  label {
+    color: #a40059;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 140px;
+    height: 8px;
+    border-radius: 8px;
+    background: #ffb6cc;
+    outline: none;
+    margin: 0 5px 0 0;
+    vertical-align: middle;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #ff66b2;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+    margin-top: -6px;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #ff66b2;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+  }
+  .tool-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Lista capas */
+  #layersContainer {
+    margin-top: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+    background: #fff0f6;
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: inset 0 0 6px #ff99cc88;
+  }
+  .layer-item {
+    background: #ff9fc6;
+    margin: 4px 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    font-weight: 700;
+    font-family: 'Fredoka One', cursive;
+    transition: background 0.3s;
+  }
+  .layer-item.active {
+    background: #ff66b2;
+    box-shadow: 0 0 8px #ff4d9a;
+  }
+  .layer-controls {
+    display: flex;
+    gap: 6px;
+  }
+  .layer-controls button {
+    background: #ff66b2;
+    border: none;
+    border-radius: 5px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-family: 'Fredoka One', cursive;
+    color: white;
+    transition: background 0.3s;
+  }
+  .layer-controls button:hover {
+    background: #ff4d9a;
+  }
+
+  /* Canvas principal */
+  #canvasContainer {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    height: 500px;
+    border: 3px solid #ff66b2;
+    border-radius: 15px;
+    background: white;
+    touch-action: none; /* para touch */
+    user-select: none;
+  }
+  canvas.layerCanvas {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 15px;
+  }
+
+  /* Color picker y descarga */
+  #colorPicker {
+    margin-left: 8px;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ff66b2;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  #downloadBtns button {
+    margin-left: 10px;
+    background: #ff8ac4;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 14px;
+    font-family: 'Fredoka One', cursive;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  #downloadBtns button:hover {
+    background: #ff66b2;
+  }
+
+  /* Info transparencia y grosor */
+  #infoTransparency, #infoBrushSize {
+    color: #a40059;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-left: 6px;
+    min-width: 140px;
+  }
+
+  /* Scrollbar para capas y dibujos guardados */
+  #savedDrawings::-webkit-scrollbar,
+  #layersContainer::-webkit-scrollbar {
+    width: 6px;
+  }
+  #savedDrawings::-webkit-scrollbar-thumb,
+  #layersContainer::-webkit-scrollbar-thumb {
+    background-color: #ff66b2;
+    border-radius: 10px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    #canvasContainer {
+      height: 350px;
+    }
+    #tools {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+
+</style>
+</head>
+<body>
+
+<h1>KikiPaint</h1>
+
+<!-- MENÚ -->
+<div id="menu">
+  <div id="savedDrawings"></div>
+  <button id="btnNewDrawing">+ Nuevo Dibujo</button>
+</div>
+
+<!-- EDITOR -->
+<div id="editor">
+
+  <!-- Herramientas -->
+  <div id="tools">
+
+    <button id="btnUndo" class="tool-btn" title="Deshacer (Ctrl+Z)">↺ Undo</button>
+    <button id="btnRedo" class="tool-btn" title="Rehacer (Ctrl+Y)">↻ Redo</button>
+
+    <button id="btnBrush" class="tool-btn active" title="Pincel">🖌️</button>
+    <button id="btnEraser" class="tool-btn" title="Borrador">🩹</button>
+
+    <div class="tool-group">
+      <label for="brushSize">Grosor:</label>
+      <input type="range" id="brushSize" min="1" max="30" value="5" />
+      <span id="infoBrushSize">5 px</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="transparency">Transparencia:</label>
+      <input type="range" id="transparency" min="10" max="100" value="100" />
+      <span id="infoTransparency">100%</span>
+    </div>
+
+    <input type="color" id="colorPicker" title="Seleccionar color" value="#ff66b2" />
+
+    <button id="btnClearLayer" class="tool-btn" title="Limpiar capa actual">🗑️ Limpiar capa</button>
+
+  </div>
+
+  <!-- Contenedor canvas -->
+  <div id="canvasContainer" tabindex="0" aria-label="Lienzo para dibujar"></div>
+
+  <!-- Capas -->
+  <h3 style="color:#a40059; margin-top: 15px;">Capas</h3>
+  <div id="layersContainer"></div>
+
+  <!-- Descargar dibujo -->
+  <div id="downloadBtns" style="margin-top:15px; text-align: center;">
+    <button id="btnDownloadBG" title="Descargar con fondo">📷 Descargar con fondo</button>
+    <button id="btnDownloadTransparent" title="Descargar con fondo transparente">📁 Descargar sin fondo</button>
+  </div>
+
+  <!-- Botón volver al menú -->
+  <button id="btnBackMenu" style="margin-top: 20px; background:#ff66b2; color:white; border:none; border-radius:12px; padding:12px; font-family:'Fredoka One', cursive; cursor:pointer; width:100%; font-size:1.2rem;">⬅ Volver al menú</button>
+
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ----- VARIABLES PRINCIPALES -----
+  const menu = document.getElementById('menu');
+  const savedDrawingsDiv = document.getElementById('savedDrawings');
+  const btnNewDrawing = document.getElementById('btnNewDrawing');
+  const editor = document.getElementById('editor');
+  const canvasContainer = document.getElementById('canvasContainer');
+  const btnBackMenu = document.getElementById('btnBackMenu');
+
+  // Herramientas
+  const btnUndo = document.getElementById('btnUndo');
+  const btnRedo = document.getElementById('btnRedo');
+  const btnBrush = document.getElementById('btnBrush');
+  const btnEraser = document.getElementById('btnEraser');
+  const brushSizeInput = document.getElementById('brushSize');
+  const infoBrushSize = document.getElementById('infoBrushSize');
+  const transparencyInput = document.getElementById('transparency');
+  const infoTransparency = document.getElementById('infoTransparency');
+  const colorPicker = document.getElementById('colorPicker');
+  const btnClearLayer = document.getElementById('btnClearLayer');
+
+  // Capas
+  const layersContainer = document.getElementById('layersContainer');
+
+  // Descargar
+  const btnDownloadBG = document.getElementById('btnDownloadBG');
+  const btnDownloadTransparent = document.getElementById('btnDownloadTransparent');
+
+  // Estado de la app
+  let drawings = []; // Array de dibujos guardados: {id, name, layersData: array de imágenes en base64, createdAt}
+  let currentDrawingId = null;
+  let layers = []; // Array de capas {canvas, ctx, visible: bool, name: string}
+  let activeLayerIndex = 0;
+
+  let undoStack = [];
+  let redoStack = [];
+
+  // Herramientas
+  let tool = 'brush'; // o 'eraser'
+  let brushSize = parseInt(brushSizeInput.value);
+  let brushColor = colorPicker.value;
+  let brushAlpha = parseInt(transparencyInput.value) / 100;
+
+  // Dibujo
+  let isDrawing = false;
+  let lastPos = null;
+
+  // --- FUNCIONES ---
+
+  // Guardar dibujos en localStorage
+  function saveDrawings() {
+    localStorage.setItem('kikipaint_drawings', JSON.stringify(drawings));
+  }
+
+  // Cargar dibujos guardados
+  function loadDrawings() {
+    const saved = localStorage.getItem('kikipaint_drawings');
+    if(saved){
+      try {
+        drawings = JSON.parse(saved);
+      } catch(e) {
+        drawings = [];
+      }
+    } else {
+      drawings = [];
+    }
+  }
+
+  // Mostrar dibujos guardados solo en menú
+  function renderSavedDrawings(){
+    savedDrawingsDiv.innerHTML = '';
+    if(drawings.length === 0){
+      savedDrawingsDiv.innerHTML = '<p style="color:#a40059; text-align:center;">No hay dibujos guardados.</p>';
+      return;
+    }
+    drawings.forEach(d => {
+      const card = document.createElement('div');
+      card.className = 'drawing-card';
+
+      // Miniatura canvas
+      const thumbCanvas = document.createElement('canvas');
+      thumbCanvas.width = 60;
+      thumbCanvas.height = 60;
+      const ctx = thumbCanvas.getContext('2d');
+
+      // Pintar la miniatura combinando capas
+      const tempImages = d.layersData || [];
+      tempImages.forEach(base64Img => {
+        let img = new Image();
+        img.src = base64Img;
+        img.onload = () => {
+          ctx.clearRect(0,0,thumbCanvas.width,thumbCanvas.height);
+          tempImages.forEach(b64=>{
+            let im = new Image();
+            im.src = b64;
+            im.onload = () => {
+              ctx.drawImage(im, 0, 0, thumbCanvas.width, thumbCanvas.height);
+            }
+          });
+        };
+      });
+
+      card.appendChild(thumbCanvas);
+
+      // Info texto
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'drawing-info';
+      infoDiv.textContent = d.name;
+      infoDiv.title = `Guardado: ${new Date(d.createdAt).toLocaleString()}`;
+
+      // Botones borrar y editar
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.className = 'drawing-buttons';
+
+      const btnEdit = document.createElement('button');
+      btnEdit.textContent = 'Editar';
+      btnEdit.title = 'Editar dibujo';
+      btnEdit.onclick = () => openDrawing(d.id);
+
+      const btnDelete = document.createElement('button');
+      btnDelete.textContent = 'Borrar';
+      btnDelete.title = 'Borrar dibujo';
+      btnDelete.onclick = () => {
+        if(confirm(`¿Borrar dibujo "${d.name}"? Esta acción no se puede deshacer.`)){
+          drawings = drawings.filter(x => x.id !== d.id);
+          saveDrawings();
+          renderSavedDrawings();
+        }
+      };
+
+      buttonsDiv.appendChild(btnEdit);
+      buttonsDiv.appendChild(btnDelete);
+
+      card.appendChild(infoDiv);
+      card.appendChild(buttonsDiv);
+      savedDrawingsDiv.appendChild(card);
+    });
+  }
+
+  // Crear lienzo para capa
+  function createLayerCanvas(){
+    const c = document.createElement('canvas');
+    c.className = 'layerCanvas';
+    c.width = canvasContainer.clientWidth;
+    c.height = canvasContainer.clientHeight;
+    c.style.zIndex = layers.length;
+    canvasContainer.appendChild(c);
+    const ctx = c.getContext('2d');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    return {canvas: c, ctx};
+  }
+
+  // Crear una nueva capa
+  function addLayer(name = 'Capa ' + (layers.length + 1), visible = true){
+    const {canvas, ctx} = createLayerCanvas();
+    layers.push({canvas, ctx, visible, name});
+    updateLayersUI();
+    setActiveLayer(layers.length - 1);
+    saveUndoState();
+  }
+
+  // Actualizar la UI de capas
+  function updateLayersUI(){
+    layersContainer.innerHTML = '';
+    layers.forEach((layer, i) => {
+      const div = document.createElement('div');
+      div.className = 'layer-item';
+      if(i === activeLayerIndex) div.classList.add('active');
+
+      // Checkbox para visibilidad
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = layer.visible;
+      cb.title = 'Mostrar / ocultar capa';
+      cb.onchange = () => {
+        layer.visible = cb.checked;
+        layer.canvas.style.display = layer.visible ? 'block' : 'none';
+      };
+      div.appendChild(cb);
+
+      // Nombre editable
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = layer.name;
+      nameSpan.contentEditable = true;
+      nameSpan.spellcheck = false;
+      nameSpan.style.userSelect = 'text';
+      nameSpan.onblur = () => {
+        layer.name = nameSpan.textContent.trim() || layer.name;
+        updateLayersUI();
+      };
+      div.appendChild(nameSpan);
+
+      // Botones subir / bajar
+      const btnUp = document.createElement('button');
+      btnUp.textContent = '⬆';
+      btnUp.title = 'Subir capa';
+      btnUp.onclick = () => {
+        if(i === 0) return;
+        [layers[i], layers[i-1]] = [layers[i-1], layers[i]];
+        updateLayersZIndex();
+        updateLayersUI();
+      };
+      div.appendChild(btnUp);
+
+      const btnDown = document.createElement('button');
+      btnDown.textContent = '⬇';
+      btnDown.title = 'Bajar capa';
+      btnDown.onclick = () => {
+        if(i === layers.length - 1) return;
+        [layers[i], layers[i+1]] = [layers[i+1], layers[i]];
+        updateLayersZIndex();
+        updateLayersUI();
+      };
+      div.appendChild(btnDown);
+
+      // Seleccionar capa
+      div.onclick = () => {
+        setActiveLayer(i);
+      };
+
+      layersContainer.appendChild(div);
+
+      // Actualizar canvas z-index
+      updateLayersZIndex();
+    });
+  }
+
+  // Actualizar el z-index de los canvas según orden de capas
+  function updateLayersZIndex(){
+    layers.forEach((layer, i) => {
+      layer.canvas.style.zIndex = i;
+      layer.canvas.style.display = layer.visible ? 'block' : 'none';
+    });
+  }
+
+  // Establecer capa activa
+  function setActiveLayer(index){
+    if(index < 0 || index >= layers.length) return;
+    activeLayerIndex = index;
+    updateLayersUI();
+  }
+
+  // Limpiar capa activa
+  function clearActiveLayer(){
+    const layer = layers[activeLayerIndex];
+    if(!layer) return;
+    layer.ctx.clearRect(0,0,layer.canvas.width,layer.canvas.height);
+    saveUndoState();
+  }
+
+  // Dibujo
+
+  function getMousePos(evt){
+    const rect = canvasContainer.getBoundingClientRect();
+    let x, y;
+    if(evt.touches){
+      x = evt.touches[0].clientX - rect.left;
+      y = evt.touches[0].clientY - rect.top;
+    } else {
+      x = evt.clientX - rect.left;
+      y = evt.clientY - rect.top;
+    }
+    return {x, y};
+  }
+
+  function drawLine(ctx, from, to, color, size, alpha){
+    ctx.strokeStyle = color;
+    ctx.lineWidth = size;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  }
+
+  // Estado para undo/redo
+
+  function saveUndoState(){
+    if(layers.length === 0) return;
+    const state = layers.map(layer => layer.canvas.toDataURL());
+    undoStack.push(state);
+    if(undoStack.length > 50) undoStack.shift();
+    redoStack = [];
+    updateUndoRedoButtons();
+    saveCurrentDrawingAuto();
+  }
+
+  function undo(){
+    if(undoStack.length === 0) return;
+    const currentState = layers.map(layer => layer.canvas.toDataURL());
+    redoStack.push(currentState);
+    const prevState = undoStack.pop();
+    applyState(prevState);
+    updateUndoRedoButtons();
+  }
+
+  function redo(){
+    if(redoStack.length === 0) return;
+    const currentState = layers.map(layer => layer.canvas.toDataURL());
+    undoStack.push(currentState);
+    const nextState = redoStack.pop();
+    applyState(nextState);
+    updateUndoRedoButtons();
+  }
+
+  function applyState(state){
+    if(!state) return;
+    state.forEach((dataUrl, i) => {
+      if(layers[i]){
+        const img = new Image();
+        img.onload = () => {
+          layers[i].ctx.clearRect(0,0,layers[i].canvas.width,layers[i].canvas.height);
+          layers[i].ctx.drawImage(img,0,0,layers[i].canvas.width,layers[i].canvas.height);
+        };
+        img.src = dataUrl;
+      }
+    });
+  }
+
+  function updateUndoRedoButtons(){
+    btnUndo.disabled = undoStack.length === 0;
+    btnRedo.disabled = redoStack.length === 0;
+  }
+
+  // Guardado automático dibujo actual
+  function saveCurrentDrawingAuto(){
+    if(currentDrawingId === null) return;
+    const layersData = layers.map(l => l.canvas.toDataURL());
+    const drawing = drawings.find(d => d.id === currentDrawingId);
+    if(drawing){
+      drawing.layersData = layersData;
+      drawing.updatedAt = Date.now();
+      saveDrawings();
+      renderSavedDrawings();
+    }
+  }
+
+  // Abrir dibujo para editar
+  function openDrawing(id){
+    const drawing = drawings.find(d => d.id === id);
+    if(!drawing) return;
+    currentDrawingId = id;
+    menu.style.display = 'none';
+    editor.style.display = 'block';
+    // Limpiar capas actuales
+    layers.forEach(l => canvasContainer.removeChild(l.canvas));
+    layers = [];
+
+    // Crear capas con imágenes guardadas
+    drawing.layersData.forEach(base64 => {
+      addLayer('', true);
+      const layer = layers[layers.length - 1];
+      const img = new Image();
+      img.onload = () => {
+        layer.ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+        layer.ctx.drawImage(img, 0, 0, layer.canvas.width, layer.canvas.height);
+      };
+      img.src = base64;
+    });
+    setActiveLayer(0);
+    undoStack = [];
+    redoStack = [];
+    updateUndoRedoButtons();
+  }
+
+  // Nuevo dibujo
+  function newDrawing(){
+    const name = prompt('Nombre para el nuevo dibujo:','Dibujo ' + (drawings.length + 1));
+    if(!name) return;
+    currentDrawingId = Date.now().toString();
+    drawings.push({id: currentDrawingId, name: name, layersData: [], createdAt: Date.now()});
+    saveDrawings();
+    openDrawing(currentDrawingId);
+    addLayer('Capa 1');
+  }
+
+  // Cambiar herramienta
+  function selectTool(t){
+    tool = t;
+    btnBrush.classList.toggle('active', tool === 'brush');
+    btnEraser.classList.toggle('active', tool === 'eraser');
+  }
+
+  // Actualizar grosor y transparencia
+  brushSizeInput.oninput = () => {
+    brushSize = parseInt(brushSizeInput.value);
+    infoBrushSize.textContent = brushSize + ' px';
+  };
+
+  transparencyInput.oninput = () => {
+    brushAlpha = parseInt(transparencyInput.value) / 100;
+    infoTransparency.textContent = (brushAlpha * 100).toFixed(0) + '%';
+  };
+
+  colorPicker.oninput = () => {
+    brushColor = colorPicker.value;
+  };
+
+  // Dibujo en capa activa
+  canvasContainer.addEventListener('mousedown', startDrawing);
+  canvasContainer.addEventListener('touchstart', startDrawing);
+  canvasContainer.addEventListener('mousemove', draw);
+  canvasContainer.addEventListener('touchmove', draw);
+  canvasContainer.addEventListener('mouseup', stopDrawing);
+  canvasContainer.addEventListener('touchend', stopDrawing);
+  canvasContainer.addEventListener('mouseleave', stopDrawing);
+
+  function startDrawing(evt){
+    if(layers.length === 0) return;
+    isDrawing = true;
+    lastPos = getMousePos(evt);
+  }
+
+  function draw(evt){
+    if(!isDrawing) return;
+    evt.preventDefault();
+    const pos = getMousePos(evt);
+    const layer = layers[activeLayerIndex];
+    if(!layer) return;
+    const ctx = layer.ctx;
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = brushSize;
+
+    if(tool === 'brush'){
+      ctx.strokeStyle = brushColor;
+      ctx.globalAlpha = brushAlpha;
+    } else if(tool === 'eraser'){
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.globalCompositeOperation = 'destination-out';
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x, lastPos.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    // Reset compositing if erasing
+    if(tool === 'eraser'){
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.globalAlpha = 1;
+
+    lastPos = pos;
+  }
+
+  function stopDrawing(evt){
+    if(!isDrawing) return;
+    isDrawing = false;
+    saveUndoState();
+  }
+
+  // Botones
+
+  btnUndo.onclick = undo;
+  btnRedo.onclick = redo;
+  btnBrush.onclick = () => selectTool('brush');
+  btnEraser.onclick = () => selectTool('eraser');
+  btnClearLayer.onclick = clearActiveLayer;
+  btnDownloadBG.onclick = () => downloadImage(false);
+  btnDownloadTransparent.onclick = () => downloadImage(true);
+  btnBackMenu.onclick = () => {
+    editor.style.display = 'none';
+    menu.style.display = 'block';
+    currentDrawingId = null;
+    undoStack = [];
+    redoStack = [];
+    updateUndoRedoButtons();
+
+    // Limpiar canvas y capas
+    layers.forEach(l => canvasContainer.removeChild(l.canvas));
+    layers = [];
+  };
+  btnNewDrawing.onclick = newDrawing;
+
+  // Descargar imagen combinando capas
+  function downloadImage(transparent){
+    if(layers.length === 0) return;
+    const w = layers[0].canvas.width;
+    const h = layers[0].canvas.height;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    if(!transparent){
+      tempCtx.fillStyle = 'white';
+      tempCtx.fillRect(0, 0, w, h);
+    }
+
+    layers.forEach(layer => {
+      if(layer.visible){
+        tempCtx.drawImage(layer.canvas, 0, 0);
+      }
+    });
+
+    const link = document.createElement('a');
+    link.download = (currentDrawingId ? drawings.find(d => d.id === currentDrawingId).name : 'kikipaint') + (transparent ? '_transparent.png' : '_with_bg.png');
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // Inicialización
+  function init(){
+    loadDrawings();
+    renderSavedDrawings();
+    editor.style.display = 'none';
+  }
+
+  // Añadir capa inicial si no hay capas
+  function ensureInitialLayer(){
+    if(layers.length === 0) addLayer('Capa 1');
+  }
+
+  init();
+
+})();
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => {
+            console.log('Service Worker registrado con éxito:', registration.scope);
+          })
+          .catch(error => {
+            console.error('Error al registrar Service Worker:', error);
+          });
+      });
+    }
+  </script>
+</body>
+
+</html>
